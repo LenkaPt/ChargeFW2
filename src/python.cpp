@@ -30,7 +30,9 @@ std::vector<std::string> get_available_methods();
 
 std::vector<std::string> get_available_parameters(const std::string &method_name);
 
-std::map<std::string, std::vector<std::string>> get_sutaible_methods_python(struct Molecules &molecules);
+std::vector<std::tuple<std::string, std::vector<std::string>>> get_sutaible_methods_python(struct Molecules &molecules);
+
+std::tuple<size_t, size_t, std::vector<std::tuple<std::string, int>>> get_info(struct Molecules &molecules);
 
 
 struct Molecules {
@@ -50,12 +52,19 @@ Molecules::Molecules(const std::string &filename, bool read_hetatm = true, bool 
         throw std::runtime_error("No molecules were loaded from the input file");
     }
 
-    ms.fulfill_requirements({RequiredFeatures::DISTANCE_TREE, RequiredFeatures::BOND_DISTANCES});
+//    ms.fulfill_requirements({RequiredFeatures::DISTANCE_TREE, RequiredFeatures::BOND_DISTANCES});
 }
 
 
 size_t Molecules::length() const {
     return ms.molecules().size();
+}
+
+
+std::tuple<size_t, size_t, std::vector<std::tuple<std::string, int>>> get_info(struct Molecules &molecules) {
+	molecules.ms.classify_atoms(AtomClassifier::PLAIN);
+	return molecules.ms.info2();
+
 }
 
 
@@ -98,16 +107,9 @@ std::vector<std::string> get_available_parameters(const std::string &method_name
 }
 
 
-std::map<std::string, std::vector<std::string>> get_sutaible_methods_python(struct Molecules &molecules) {
-    std::map<std::string, std::vector<std::string>> results;
-    const auto res = get_suitable_methods(molecules.ms, molecules.ms.has_proteins(), false);
-    for (const auto &[method_name, parameters]: res) {
-        results[method_name] = {};
-        for (const auto &parameter_file: parameters) {
-            results[method_name].emplace_back(fs::path(parameter_file).stem().string());
-        }
-    }
-    return results;
+std::vector<std::tuple<std::string, std::vector<std::string>>> get_sutaible_methods_python(struct Molecules &molecules) {
+    //std::map<std::string, std::vector<std::string>> results;
+    return get_suitable_methods(molecules.ms, molecules.ms.has_proteins(), false);
 }
 
 
@@ -123,6 +125,7 @@ calculate_charges(struct Molecules &molecules, const std::string &method_name, s
     }
 
     auto method = (*get_method_handle)();
+    molecules.ms.fulfill_requirements(method->get_requirements());
     std::unique_ptr<Parameters> parameters;
     if (method->has_parameters()) {
         if (!parameters_name.has_value()) {
@@ -174,4 +177,5 @@ PYBIND11_MODULE(chargefw2_python, m) {
     m.def("get_suitable_methods", &get_sutaible_methods_python, "molecules"_a, "Get methods and parameters that are suitable for a given set of molecules");
     m.def("calculate_charges", &calculate_charges, "molecules"_a, "method_name"_a, py::arg("parameters_name") = py::none(),
           "Calculate partial atomic charges for a given molecules and method");
+    m.def("get_info", &get_info, "molecules"_a, "Get info about given set of molecules");
 }
