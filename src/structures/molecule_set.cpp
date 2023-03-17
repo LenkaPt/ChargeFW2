@@ -55,6 +55,32 @@ void MoleculeSet::info() const {
 }
 
 
+std::tuple<size_t, size_t, std::vector<std::tuple<std::string, int>>> MoleculeSet::info2() const {
+    std::tuple<> empty_info;
+    auto size_info = std::tuple_cat(empty_info, std::make_tuple(molecules_->size()));
+    //fmt::print("Number of molecules: {}\n", molecules_->size());
+    std::map<size_t, int> counts;
+    size_t n_atoms = 0;
+    for (const auto &m: *molecules_) {
+        for (auto &a : m.atoms()) {
+            counts[a.type()] += 1;
+            n_atoms++;
+        }
+    }
+
+    auto size_atom_count_info = std::tuple_cat(size_info, std::make_tuple(n_atoms));
+    //fmt::print("Number of atoms: {}\n", n_atoms);
+    std::vector<std::tuple<std::string, int>> atomic_types;
+    for (auto &[key, val]: counts) {
+        auto[symbol, cls, type] = atom_types_[key];
+        atomic_types.emplace_back(std::make_tuple(symbol, val));
+        //fmt::print("{:2s} {:6s} {:4s}: {}\n", symbol, cls, type, val);
+    }
+    auto info = std::tuple_cat(size_atom_count_info, std::make_tuple(atomic_types));
+    return info;
+}
+
+
 void MoleculeSet::classify_atoms(AtomClassifier cls) {
     switch (cls) {
         case AtomClassifier::PLAIN: {

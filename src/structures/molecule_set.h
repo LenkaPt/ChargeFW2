@@ -65,6 +65,8 @@ public:
 
     explicit MoleculeSet(std::unique_ptr<std::vector<Molecule> > molecules);
 
+    std::tuple<size_t, size_t, std::vector<std::tuple<std::string, int>>> info2() const;
+
     void info() const;
 
     [[nodiscard]] const std::vector<Molecule> &molecules() const { return *molecules_; }
