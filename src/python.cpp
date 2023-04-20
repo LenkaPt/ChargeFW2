@@ -16,6 +16,7 @@
 #include "charges.h"
 #include "candidates.h"
 #include "utility/strings.h"
+#include "formats/mol2.h"
 
 
 namespace fs = std::filesystem;
@@ -33,6 +34,8 @@ std::vector<std::string> get_available_parameters(const std::string &method_name
 std::vector<std::tuple<std::string, std::vector<std::string>>> get_sutaible_methods_python(struct Molecules &molecules);
 
 std::tuple<size_t, size_t, std::vector<std::tuple<std::string, int>>> get_info(struct Molecules &molecules);
+
+void save_mol2(struct Molecules &molecules, std::map<std::string, std::vector<double>> charges, std::string mol2_filename);
 
 
 struct Molecules {
@@ -164,6 +167,17 @@ calculate_charges(struct Molecules &molecules, const std::string &method_name, s
     return charges;
 }
 
+void save_mol2(struct Molecules &molecules, std::map<std::string, std::vector<double>> charges, std::string mol2_filename) {
+        auto mol2 = Mol2();
+
+        auto charges_struct = Charges();
+        for (auto const& [key, value]: charges){
+                charges_struct.insert(key, value);
+                //mol2.save_charges(molecules.ms, charges_struct, mol2_filename);
+        }
+        mol2.save_charges(molecules.ms, charges_struct, mol2_filename);
+}
+
 
 PYBIND11_MODULE(chargefw2_python, m) {
     m.doc() = "Python bindings to ChargeFW2";
@@ -178,4 +192,5 @@ PYBIND11_MODULE(chargefw2_python, m) {
     m.def("calculate_charges", &calculate_charges, "molecules"_a, "method_name"_a, py::arg("parameters_name") = py::none(),
           "Calculate partial atomic charges for a given molecules and method");
     m.def("get_info", &get_info, "molecules"_a, "Get info about given set of molecules");
+    m.def("save_mol2", &save_mol2, "molecules"_a, "charges"_a, "mol2_filename"_a, "Save charges to mol2 file");
 }
